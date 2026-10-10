@@ -1,7 +1,5 @@
 """Technical indicators used by the game and strategy backtest."""
 
-from operator import add
-
 import pandas as pd
 import talib
 

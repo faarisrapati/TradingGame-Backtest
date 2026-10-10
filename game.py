@@ -29,10 +29,35 @@ def score_round_once(state: dict, correct: bool, result: dict) -> bool:
         state["score"] += 1
         state["streak"] += 1
         state["best_streak"] = max(state["best_streak"], state["streak"])
-    else:
+    elif result.get("Actual") != "TIE":
         state["streak"] = 0
     state["round_history"].append(result)
     return True
+
+
+def calculate_game_accuracy(history: list[dict]) -> tuple[float | None, float | None, int]:
+    """Calculate directional accuracy while leaving tied rounds neutral."""
+    decisive_round_count = 0
+    player_correct_count = 0
+    algorithm_correct_count = 0
+    tie_count = 0
+
+    for result in history:
+        if result["Actual"] == "TIE":
+            tie_count += 1
+        else:
+            decisive_round_count += 1
+            if result["Your prediction correct"]:
+                player_correct_count += 1
+            if result["Algorithm correct"]:
+                algorithm_correct_count += 1
+
+    if decisive_round_count == 0:
+        return None, None, tie_count
+
+    player_accuracy = player_correct_count / decisive_round_count * 100
+    algorithm_accuracy = algorithm_correct_count / decisive_round_count * 100
+    return player_accuracy, algorithm_accuracy, tie_count
 
 
 def _initialize_game_state() -> None:
@@ -202,13 +227,25 @@ def _draw_game_chart(data: pd.DataFrame, decision_index: int, revealed: bool) ->
 
 def _show_game_results() -> None:
     history = st.session_state.round_history
-    player_accuracy = st.session_state.score / 10 * 100
-    algorithm_correct = sum(item["Algorithm correct"] for item in history)
-    columns = st.columns(4)
-    columns[0].metric("Player accuracy", f"{player_accuracy:.0f}%")
-    columns[1].metric("Algorithm accuracy", f"{algorithm_correct / 10 * 100:.0f}%")
+    player_accuracy, algorithm_accuracy, tie_count = calculate_game_accuracy(history)
+    algorithm_correct = 0
+    for result in history:
+        if result["Actual"] != "TIE" and result["Algorithm correct"]:
+            algorithm_correct += 1
+
+    if player_accuracy is None:
+        player_accuracy_text = "N/A"
+        algorithm_accuracy_text = "N/A"
+    else:
+        player_accuracy_text = f"{player_accuracy:.0f}%"
+        algorithm_accuracy_text = f"{algorithm_accuracy:.0f}%"
+
+    columns = st.columns(5)
+    columns[0].metric("Player accuracy", player_accuracy_text)
+    columns[1].metric("Algorithm accuracy", algorithm_accuracy_text)
     columns[2].metric("Correct calls", f"{st.session_state.score} / 10")
     columns[3].metric("Best streak", st.session_state.best_streak)
+    columns[4].metric("Tie rounds", tie_count)
 
     if history:
         results = pd.DataFrame(history)
@@ -343,18 +380,27 @@ def show_trading_game() -> None:
             "Ticker": current["ticker"],
             "Date": str(data.index[decision_index].date()),
             "Your call": st.session_state.prediction,
-            "Your prediction correct": player_correct,
+            "Your prediction correct": None if actual == "TIE" else player_correct,
             "Actual": actual,
             "Change": f"{change:+.2f}%",
             "Rule-based call": algorithm,
-            "Algorithm correct": algorithm_correct,
+            "Algorithm correct": None if actual == "TIE" else algorithm_correct,
         }
         score_round_once(st.session_state, player_correct, result)
         if actual == "TIE":
-            st.info(f"The five-day result was unchanged ({change:+.2f}%). A tie is neither UP nor DOWN.")
+            st.info(f"The five-day result was unchanged ({change:+.2f}%). This tie changes neither your score nor streak, and neither call is marked correct or incorrect.")
+            st.write(f"Rule-Based Algorithm called **{algorithm}**. The tie is not counted as a correct or incorrect call.")
         else:
+            if player_correct:
+                player_result_text = "correct"
+            else:
+                player_result_text = "not correct"
+            if algorithm_correct:
+                algorithm_result_text = "correct"
+            else:
+                algorithm_result_text = "not correct"
             st.success(f"Actual move: **{actual}** ({change:+.2f}%). Your prediction was {player_result_text}.")
-        st.write(f"Rule-Based Algorithm: **{algorithm}**. It was {algorithm_result_text}.")
+            st.write(f"Rule-Based Algorithm: **{algorithm}**. It was {algorithm_result_text}.")
         st.caption("Rule: predict UP when EMA 20 is above EMA 50 and RSI is below 70; otherwise predict DOWN. It uses only indicators known on the decision date.")
         score_columns = st.columns(3)
         score_columns[0].metric("Score", f"{st.session_state.score} / 10")
