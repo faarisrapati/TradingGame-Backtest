@@ -30,8 +30,7 @@ The rules are straightforward:
 2. **Sell** when the 20-day EMA crosses below the 50-day EMA.
 3. Make the simulated trade at the **next trading day's opening price**, after the signal is known.
 
-That third step matters. If a backtest uses a day's closing price to calculate a signal and then pretends it traded at that same closing price, it can produce unrealistic results. Executing at the next open helps avoid that kind of **look-ahead bias**.
-
+“I made trades execute at the next day’s open because I didn’t want the backtest using information it technically wouldn’t have had yet.”
 The simulation uses available virtual cash to buy whole shares and tracks the portfolio over time. It also compares the strategy against **buy-and-hold**, which means buying the stock at the beginning and holding it through the same period.
 
 The results show:
@@ -123,7 +122,7 @@ For the game, I could add difficulty levels, more indicators, leaderboards, and 
 
 Eventually, I'd love to explore portfolio backtesting, more detailed risk analysis, and an educational AI assistant that helps explain charts and strategy results rather than simply telling people what to buy.
 
-The bigger idea is to connect everything in one place: **learn about an indicator, practice using it, build a strategy around it, and test that strategy against historical data**. That's the direction I want MarketLab to grow in.
+“Long term, I want MarketLab to be a place where someone can learn an indicator, test it in the game, build a strategy around it, and see if it actually worked historically.”
 
 ## About the Project
 

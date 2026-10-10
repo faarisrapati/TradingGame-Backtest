@@ -1,4 +1,4 @@
-"""Simple, chronological backtesting calculations."""
+"""Backtesting calculations."""
 
 import math
 
@@ -46,7 +46,7 @@ def generate_ema_crossover_signals(data: pd.DataFrame) -> pd.Series:
 
 
 def calculate_max_drawdown(values: pd.Series) -> float:
-    """Return the largest peak-to-trough decline as a negative fraction."""
+    """Return largest peak-to-trough decline as a negative fraction."""
     if values.empty:
         return 0.0
 
@@ -89,7 +89,6 @@ def run_backtest(
         date = data.index[row_number]
         open_price = float(data["Open"].iloc[row_number])
 
-        # A signal from the previous completed candle is filled at this day's open.
         if row_number > 0:
             order_signal = int(signals.iloc[row_number - 1])
             if order_signal == 1 and shares == 0:

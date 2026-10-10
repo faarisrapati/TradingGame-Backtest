@@ -94,7 +94,6 @@ def _start_game() -> None:
 
 
 def _open_strategy_lab(ticker: str) -> None:
-    """Switch modes before Streamlit recreates the keyed navigation widget."""
     st.session_state.lab_ticker = ticker
     st.session_state.page_mode = "Strategy Lab"
 
