@@ -131,15 +131,38 @@ def run_backtest(
 
     final_value = float(equity["Strategy"].iloc[-1])
     buy_hold_final = float(equity["Buy and hold"].iloc[-1])
+    total_return = final_value / initial_capital - 1
+    buy_hold_return = buy_hold_final / initial_capital - 1
+
+    completed_trade_count = len(completed_trades)
+    winning_trade_count = 0
+    total_trade_profit = 0.0
+    for trade in completed_trades:
+        trade_profit = float(trade["Net profit"])
+        total_trade_profit += trade_profit
+        if trade_profit > 0:
+            winning_trade_count += 1
+
+    if completed_trade_count > 0:
+        win_rate = winning_trade_count / completed_trade_count
+        average_trade_profit = total_trade_profit / completed_trade_count
+    else:
+        win_rate = None
+        average_trade_profit = None
+
     return {
         "equity": equity,
         "signals": signals,
         "trades": completed_trades,
         "initial_capital": float(initial_capital),
         "final_value": final_value,
-        "total_return": final_value / initial_capital - 1,
+        "total_return": total_return,
         "buy_hold_final": buy_hold_final,
-        "buy_hold_return": buy_hold_final / initial_capital - 1,
+        "buy_hold_return": buy_hold_return,
+        "excess_return": total_return - buy_hold_return,
+        "completed_trade_count": completed_trade_count,
+        "win_rate": win_rate,
+        "average_trade_profit": average_trade_profit,
         "max_drawdown": calculate_max_drawdown(equity["Strategy"]),
         "open_position": shares > 0,
     }

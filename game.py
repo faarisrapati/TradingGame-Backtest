@@ -137,25 +137,56 @@ def _indicator_summary(row: pd.Series) -> None:
 
 
 def _draw_game_chart(data: pd.DataFrame, decision_index: int, revealed: bool) -> None:
-    visible = round_chart_data(data, decision_index, revealed)
+    history_start = max(0, decision_index - 59)
+    history = data.iloc[history_start:decision_index + 1]
     figure = go.Figure()
     figure.add_trace(
         go.Candlestick(
-            x=visible.index,
-            open=visible["Open"],
-            high=visible["High"],
-            low=visible["Low"],
-            close=visible["Close"],
-            name="Price",
+            x=history.index,
+            open=history["Open"],
+            high=history["High"],
+            low=history["Low"],
+            close=history["Close"],
+            name="Price history",
             increasing_line_color="#c8ec68",
             decreasing_line_color="#ed806e",
         )
     )
+    if revealed:
+        future_data = data.iloc[decision_index + 1:decision_index + 6]
+        figure.add_trace(
+            go.Candlestick(
+                x=future_data.index,
+                open=future_data["Open"],
+                high=future_data["High"],
+                low=future_data["Low"],
+                close=future_data["Close"],
+                name="Five-day reveal",
+                increasing_line_color="#70d4a2",
+                decreasing_line_color="#e8b66e",
+            )
+        )
+        figure.add_vrect(
+            x0=future_data.index[0],
+            x1=future_data.index[-1],
+            fillcolor="rgba(200, 236, 104, 0.08)",
+            line_width=0,
+            layer="below",
+        )
+
+    visible = round_chart_data(data, decision_index, revealed)
     figure.add_trace(go.Scatter(x=visible.index, y=visible["EMA_20"], name="EMA 20", line={"color": "#70d4a2", "width": 2}))
     figure.add_trace(go.Scatter(x=visible.index, y=visible["EMA_50"], name="EMA 50", line={"color": "#e8b66e", "width": 2}))
-    figure.add_vline(x=data.index[decision_index], line_dash="dot", line_color="#c8ec68")
+    figure.add_vline(
+        x=data.index[decision_index],
+        line_dash="dot",
+        line_color="#c8ec68",
+        annotation_text="Decision",
+        annotation_position="top",
+        annotation_font_color="#c8ec68",
+    )
     figure.update_layout(
-        height=430,
+        height=470,
         margin={"l": 10, "r": 10, "t": 20, "b": 10},
         xaxis_rangeslider_visible=False,
         legend={"orientation": "h", "y": 1.08},
@@ -202,11 +233,36 @@ def show_trading_game() -> None:
     """Render the ten-round game and preserve progress across reruns."""
     _initialize_game_state()
     st.subheader("Trading Game")
-    st.caption("Read a historical chart, call the next five trading days, then compare your result with a transparent rule.")
 
     if not st.session_state.game_active and not st.session_state.game_over:
-        st.info("Ten rounds. Predict whether the adjusted closing price five trading days later is UP or DOWN. Ties do not score.")
-        st.button("Start Game", on_click=_start_game, type="primary")
+        st.markdown(
+            """
+            <section class="game-launch">
+                <div class="game-launch-label">Trading Game / 10 rounds</div>
+                <h2>Read the chart. Make your call.</h2>
+                <p class="game-launch-intro">Study a historical stock chart, predict whether its closing price will be higher or lower in five trading sessions, then compare your call with a simple rule-based opponent.</p>
+                <div class="game-steps">
+                    <div>
+                        <div class="game-step-number">01 / STUDY</div>
+                        <p class="game-step-title">Read the setup</p>
+                        <p class="game-step-copy">Review about 60 sessions of price action and the indicators at the decision date.</p>
+                    </div>
+                    <div>
+                        <div class="game-step-number">02 / PREDICT</div>
+                        <p class="game-step-title">Choose a direction</p>
+                        <p class="game-step-copy">Call UP or DOWN using only the information visible before the reveal.</p>
+                    </div>
+                    <div>
+                        <div class="game-step-number">03 / REVIEW</div>
+                        <p class="game-step-title">Compare the outcome</p>
+                        <p class="game-step-copy">See the next five candles, your score, and the rule-based result. An unchanged close is a tie.</p>
+                    </div>
+                </div>
+            </section>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.button("Start 10-round game", on_click=_start_game, type="primary", width="stretch")
         return
     if st.session_state.game_over:
         st.success("Game complete. These historical results are educational, not a forecast.")
@@ -224,13 +280,35 @@ def show_trading_game() -> None:
     data = current["data"]
     decision_index = current["decision_index"]
     decision_row = data.iloc[decision_index]
-    st.markdown(f"**Round {st.session_state.round_number} of 10**  ·  `{current['ticker']}`  ·  {data.index[decision_index].date()}")
+    decision_date = data.index[decision_index].date()
+    st.markdown(
+        f"""
+        <div class="game-roundbar">
+            <div>
+                <div class="game-round-label">Round {st.session_state.round_number:02d} / 10</div>
+                <h2>{current['ticker']}</h2>
+            </div>
+            <div>
+                <div class="game-round-detail">Decision date</div>
+                <div class="game-round-value">{decision_date}</div>
+            </div>
+            <div>
+                <div class="game-round-detail">Forecast horizon</div>
+                <div class="game-round-value">5 trading sessions</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.progress(st.session_state.round_number / 10, text=f"Round {st.session_state.round_number} of 10")
     _draw_game_chart(data, decision_index, st.session_state.prediction is not None)
+    if st.session_state.prediction is not None:
+        st.caption("Five-day reveal: the highlighted candles are the five sessions after your decision date.")
     _indicator_summary(decision_row)
     st.caption("EMA 20/50 show shorter- and longer-term average price trends. The chart stops at the decision date until you submit a prediction.")
 
     if st.session_state.prediction is None:
-        st.markdown("### Your call")
+        st.markdown("### Make your call")
         up_column, down_column = st.columns(2)
         if up_column.button("Predict UP", width="stretch", type="primary"):
             st.session_state.prediction = "UP"

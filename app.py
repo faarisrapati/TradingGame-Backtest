@@ -34,6 +34,7 @@ st.markdown(
         border-right: 1px solid var(--line);
     }
     [data-testid="stSidebar"] > div:first-child { padding-top: 1.5rem; }
+    [data-testid="stSidebar"] [data-testid="stCaptionContainer"] p { line-height: 1.5; }
     .block-container { max-width: 1510px; padding-top: 1.25rem; padding-bottom: 3rem; }
     h1, h2, h3 { color: var(--text); font-family: Georgia, "Palatino Linotype", serif; }
     h2 { font-size: 1.65rem; margin-top: 1.2rem; }
@@ -157,6 +158,61 @@ st.markdown(
         margin-right: 0.45rem;
         width: 0.42rem;
     }
+    .game-launch {
+        background: linear-gradient(115deg, rgba(30, 45, 32, 0.96), rgba(16, 25, 20, 0.92));
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--lime);
+        margin: 1.2rem 0 1rem;
+        padding: 1.6rem 1.7rem 1.25rem;
+    }
+    .game-launch-label, .game-round-label {
+        color: var(--lime);
+        font-size: 0.72rem;
+        font-weight: 700;
+        margin-bottom: 0.55rem;
+        text-transform: uppercase;
+    }
+    .game-launch h2 {
+        color: var(--text);
+        font-size: 2.15rem;
+        margin: 0 0 0.55rem;
+    }
+    .game-launch-intro {
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.6;
+        margin: 0;
+        max-width: 54rem;
+    }
+    .game-steps {
+        border-top: 1px solid var(--line);
+        display: grid;
+        gap: 1.2rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 1.4rem;
+        padding-top: 1.05rem;
+    }
+    .game-step-number { color: var(--lime); font-size: 0.72rem; font-weight: 700; }
+    .game-step-title { color: var(--text); font-size: 0.88rem; font-weight: 700; margin: 0.25rem 0; }
+    .game-step-copy { color: var(--muted); font-size: 0.78rem; line-height: 1.45; margin: 0; }
+    .game-roundbar {
+        align-items: center;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        gap: 1.5rem;
+        justify-content: space-between;
+        margin: 1rem 0 0.5rem;
+        padding: 0 0 0.9rem;
+    }
+    .game-roundbar h2 { font-size: 1.55rem; margin: 0; }
+    .game-round-detail { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; }
+    .game-round-value { color: var(--text); font-size: 0.9rem; font-weight: 600; margin-top: 0.22rem; }
+    @media (max-width: 720px) {
+        .game-launch { padding: 1.2rem 1rem 1rem; }
+        .game-launch h2 { font-size: 1.7rem; }
+        .game-steps { gap: 0.8rem; grid-template-columns: 1fr; }
+        .game-roundbar { align-items: flex-start; flex-direction: column; gap: 0.7rem; }
+    }
     @media (max-width: 640px) {
         .block-container { padding-left: 1rem; padding-right: 1rem; }
         .marketlab-masthead { align-items: flex-start; padding: 0.85rem; }
@@ -186,11 +242,12 @@ st.markdown(
 
 st.session_state.setdefault("page_mode", "Trading Game")
 page_mode = st.sidebar.radio(
-    "Explore",
+    "Choose a workspace",
     ["Trading Game", "Strategy Lab"],
     key="page_mode",
-    format_func=lambda mode: f"{'01' if mode == 'Trading Game' else '02'}  /  {mode}",
+    format_func=lambda mode: f"{'01  PLAY' if mode == 'Trading Game' else '02  ANALYZE'}  /  {mode}",
 )
+st.sidebar.caption("Start with a game round, then investigate a historical strategy.")
 st.sidebar.markdown("---")
 st.sidebar.markdown("**MARKET DATA**")
 st.sidebar.caption("Adjusted daily prices · Historical only · Not real-time")
